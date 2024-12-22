@@ -16,6 +16,13 @@ int main() {
 
     cout << gravity.x << " " << gravity.y << std::endl;
 
+    json j;
+    j["pi"] = 3.141;
+    cout << j << std::endl;
+    cout << j["pi"] << std::endl;
+    j["new"]["key"] = {"value", "another value"};
+    cout << j.dump(4) << std::endl;
+
     Server server;
     server.start();
     // ...existing code...
