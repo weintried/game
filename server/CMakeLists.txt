@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 project(GameServer)
 
-# Find the Box2D library
+# Find the dependencies
 find_package(box2d REQUIRED)
+find_package(nlohmann_json 3.10.5 REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -17,5 +18,4 @@ add_executable(GameServer
 # include_directories(include)
 target_include_directories(GameServer PRIVATE include)
 
-# target_link_libraries(GameServer box2d::box2d)
-target_link_libraries(GameServer PRIVATE box2d::box2d)
+target_link_libraries(GameServer PRIVATE box2d::box2d nlohmann_json::nlohmann_json)
