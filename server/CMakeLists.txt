@@ -13,6 +13,7 @@ add_executable(GameServer
     src/game_state.cpp
     src/player.cpp
     src/bullet.cpp
+    src/enemy.cpp
 )
 
 # include_directories(include)

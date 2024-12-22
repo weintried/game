@@ -1,20 +1,70 @@
+/**
+ * @file game_state.hpp
+ * @author wein
+ * @brief GameState class declaration
+ * @version 0.1
+ * @date 2024-12-22
+ *
+ * The GameState class represents the current state of the game, including
+ * information such as the current game state, the remaining time, and the
+ * reason for the game ending.
+ *
+ * @copyright Copyright (c) 2024
+ *
+ */
 
 #ifndef GAME_STATE_HPP
 #define GAME_STATE_HPP
 
-#include <vector>
-#include "player.hpp"
-#include "bullet.hpp"
+#include <string>
 
+#include "nlohmann/json.hpp"
+using json = nlohmann::json;
+
+#include "bullet.hpp"
+#include "player.hpp"
+
+/**
+ * @class GameState
+ * @brief Represents the current state of the game.
+ *
+ * The GameState class encapsulates information about the current state of the
+ * game, including the game state (e.g., Ready, Game_start, Game_over), the
+ * frame count, the remaining time, and the reason for the game ending. It also
+ * provides serialization support through the nlohmann::json library.
+ */
 class GameState {
-public:
-    // ...existing code...
+   public:
+    /**
+     * @brief Construct a new GameState object
+     *
+     */
+    GameState() = default;
+
     void update();
-    // ...existing code...
-private:
-    std::vector<Player> players;
-    std::vector<Bullet> bullets;
-    // ...existing code...
+
+    /**
+     * @brief Serialize the GameState object to JSON
+     *
+     * @return JSON object representing the GameState
+     */
+    json to_json() const;
+
+    /**
+     * @brief Deserialize the GameState object from JSON
+     *
+     * @param j JSON object to deserialize from
+     */
+    void from_json(const json& j);
+
+   private:
+    std::string state =
+        "Game_start";  ///< current game state: Ready | Game_start | Game_over
+    int frame_count = 0;                ///< current frame count
+    float game_remaining_time = 60.0f;  ///< remaining time in the game
+
+    // additional info
+    std::string reason = "";  ///< reason for game ending
 };
 
-#endif // GAME_STATE_HPP
+#endif  // GAME_STATE_HPP

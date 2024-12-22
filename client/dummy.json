@@ -1,4 +1,5 @@
 // game_state: Game_start, Ready, Game_over
+// reason: Time_up, All_players_dead
 
 // Game_start: Game is started and players are playing.
 {
@@ -51,7 +52,7 @@
 // Game_over: Game is over. Players are dead or time is up.
 {
     "game_state": "Game_over",
-    "reason": "Time up or all players dead.",
+    "reason": "Time_up",
     "players": [
       {
         "id": 1,
