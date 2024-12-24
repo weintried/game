@@ -74,7 +74,6 @@ class Server {
     // server client data structures
     std::atomic<int> next_client_id{0};  ///< next client ID
     std::mutex server_state_mutex;    ///< mutex for accessing the server state
-    std::mutex game_state_mutex;      ///< mutex for accessing the game state
     std::thread server_thread;        ///< thread for running the server
     std::vector<int> client_sockets;  ///< client socket file descriptors
     std::vector<std::thread> client_threads;  ///< threads for handling clients

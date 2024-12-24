@@ -1,5 +1,7 @@
 // File: server.cpp
 #include <iostream>
+
+#include "game_state.hpp"
 using std::cerr;
 using std::cout;
 using std::endl;
@@ -20,7 +22,8 @@ using json = nlohmann::json;
 
 Server::Server(int port) : port(port), server_socket(-1), running(false) {
     // Initialize the game state
-    game_state = GameState();
+    // game_state = GameState();
+    GameState game_state;
 
     // cout << "Server created with port " << port << endl;
     cout << "\n(main thread " << std::this_thread::get_id()
@@ -91,14 +94,11 @@ void Server::run() {
     cout << "\n(main thread " << std::this_thread::get_id()
          << ", Server::run) Running the game server..." << endl;
 
-    while (1)
+    while (this->running)
         ;  // FIXME: this is a temporary block to keep the server running
 
     // // Set the game state to "Game_start"
-    // {
-    //     std::lock_guard<std::mutex> lock(game_state_mutex);
-    //     game_state.set_state("Game_start");
-    // }
+    // game_state.set_state("Game_start");
 
     // // cout << "Game started!" << endl;
     // cout << "(main thread " << std::this_thread::get_id()
@@ -216,7 +216,7 @@ void Server::accept_clients() {
         }
 
         {
-            std::lock_guard<std::mutex> lock(game_state_mutex);
+            std::lock_guard<std::mutex> lock(server_state_mutex);
             client_sockets.push_back(clientSocket);
         }
 
@@ -233,7 +233,8 @@ void Server::accept_clients() {
         cout << "(server thread " << this_id << ", Server::accept_clients) "
              << "Current number of clients: " << client_sockets.size() << endl;
 
-        client_threads.emplace_back(&Server::handle_client, this, clientSocket);
+        this->client_threads.emplace_back(&Server::handle_client, this,
+                                          clientSocket);
 
         if (client_sockets.size() >= config::game_config::MAX_PLAYERS) {
             // cout << "All players connected. Game ready to start!" << endl;
@@ -243,10 +244,7 @@ void Server::accept_clients() {
                  << endl;
 
             // TODO: should I start the game here?
-            // {
-            //     std::lock_guard<std::mutex> lock(game_state_mutex);
-            //     game_state.set_state("Game_start");
-            // }
+            // game_state.set_state("Game_start");
 
             this->run();
         }
@@ -300,7 +298,8 @@ void Server::handle_client(int client_socket) {
     cout << "(client thread " << this_id << ", Server::handle_client) "
          << "(client ID " << client_id << ") "
          << "waiting for game to start..." << endl;
-    while (this->game_state.get_state() != "Game_start") {
+    // while (this->game_state.get_state() != "Game_start") {
+    while (this->running && this->game_state.get_state() != "Game_start") {
         // Sleep for a bit
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -310,7 +309,8 @@ void Server::handle_client(int client_socket) {
     cout << "(client thread " << this_id << ", Server::handle_client) "
          << "(client ID " << client_id << ") "
          << "game started!" << endl;
-    while (this->game_state.get_state() == "Game_start") {
+    // while (this->game_state.get_state() == "Game_start") {
+    while (this->running && this->game_state.get_state() == "Game_start") {
         // Receive data from the client
         char buffer[1024] = {0};
         int valread = recv(client_socket, buffer, 1024, 0);
@@ -367,8 +367,6 @@ int Server::create_client_id() {
 }
 
 int Server::send_initial_data(int client_socket, int client_id) {
-    std::lock_guard<std::mutex> lock(game_state_mutex);
-
     // FIXME: this is ugly as fuuuuuuuuuuck
     json initial_data = {{"game_state", "Ready"},
                          {"players",
@@ -412,41 +410,38 @@ int Server::send_initial_data(int client_socket, int client_id) {
 }
 
 void Server::create_player(int client_id) {
-    // Add the player to the game state
-    {
-        std::lock_guard<std::mutex> lock(game_state_mutex);
-        this->game_state.add_player(client_id);
-    }
+    this->game_state.add_player(client_id);
 }
 
 void Server::stop() {
-    cout << "\n??? thread " << std::this_thread::get_id()
+    cout << "\n(??? thread " << std::this_thread::get_id()
          << ", Server::stop) Stopping server..." << endl;
+
+    this->running = false;  // Ensure the server loop exits
 
     if (server_thread.joinable()) {
         // cout << "Joining server thread..." << endl;
-        cout << "\n??? thread " << std::this_thread::get_id()
+        cout << "\n(??? thread " << std::this_thread::get_id()
              << ", Server::stop) Joining server thread..." << endl;
         server_thread.join();  // Wait for the thread to finish
     }
 
-    for (auto &thread : client_threads) {
+    for (auto &thread : this->client_threads) {
         if (thread.joinable()) {
             // cout << "Joining client thread..." << endl;
-            cout << "\n??? thread " << std::this_thread::get_id()
-                 << ", Server::stop) Joining client thread..." << endl;
+            cout << "\n(??? thread " << std::this_thread::get_id()
+                 << ", Server::stop) Joining client thread " << thread.get_id()
+                 << "..." << endl;
             thread.join();  // Wait for the thread to finish
         }
     }
 
     if (server_socket != -1) {
         // cout << "Cleaning up server resources..." << endl;
-        cout << "\n??? thread " << std::this_thread::get_id()
+        cout << "\n(??? thread " << std::this_thread::get_id()
              << ", Server::stop) Cleaning up server resources..." << endl;
         close(server_socket);  // Close the server socket
     }
-
-    this->running = false;  // Ensure the server loop exits
 }
 
 bool Server::is_running() { return this->running; }
