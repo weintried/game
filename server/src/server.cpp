@@ -10,7 +10,9 @@ using std::endl;
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <nlohmann/json.hpp>
+#include <thread>
 using json = nlohmann::json;
 
 #include "config.hpp"
@@ -19,37 +21,107 @@ using json = nlohmann::json;
 Server::Server(int port) : port(port), server_socket(-1), running(false) {
     // Initialize the game state
     game_state = GameState();
+
+    // cout << "Server created with port " << port << endl;
+    cout << "\n(main thread " << std::this_thread::get_id()
+         << ", Server::Server) Server created with port " << port << endl;
 }
 
 Server::~Server() {
     // Stop the server
-    // this->stop();
+    this->stop();
+    // cout << "Server stopped and resources cleaned up." << endl;
+    cout << "\n(main thread " << std::this_thread::get_id()
+         << ", Server::~Server) Server stopped and resources cleaned up."
+         << endl;
 }
 
 int Server::start() {
-    cout << "Starting server on port " << port << "..." << endl;
+    // Set the running flag to true
+    this->running = true;
+    // cout << "Starting server on port " << port << "..." << endl;
+    cout << "\n(main thread " << std::this_thread::get_id()
+         << ", Server::start) Starting server on port " << port << "..."
+         << endl;
 
     // Create the server socket
     if (this->set_up_socket() < 0) {
-        cerr << "Error setting up server socket" << endl;
+        // cerr << "Error setting up server socket" << endl;
+        cerr << "(main thread " << std::this_thread::get_id()
+             << ", Server::start) Error setting up server socket" << endl;
+        this->stop();
+        return -1;
+    }
+    // cout << "Server successfully started on socket " << server_socket <<
+    // endl;
+    cout << "(main thread " << std::this_thread::get_id()
+         << ", Server::start) Server successfully started on socket "
+         << server_socket << endl;
+
+    // sleep for a bit
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Start the server thread
+    // cout << "Starting server thread..." << endl;
+    cout << "(main thread " << std::this_thread::get_id()
+         << ", Server::start) Starting server thread..." << endl;
+    try {
+        this->server_thread = std::thread(&Server::accept_clients, this);
+    } catch (std::exception &e) {
+        // cerr << "Error starting server thread:\n\n" << e.what() << endl;
+        cerr << "(main thread " << std::this_thread::get_id()
+             << ", Server::start) Error starting server thread:\n\n"
+             << e.what() << endl;
+        this->stop();
+        return -1;
+    } catch (...) {
+        // cerr << "Unknown exception in server thread creation." << endl;
+        cerr << "(main thread " << std::this_thread::get_id()
+             << ", Server::start) Unknown exception in server thread creation."
+             << endl;
+        this->stop();
         return -1;
     }
 
-    // Set the running flag to true
-    cout << "Server successfully started on port " << port << endl;
-    this->running = true;
-
-    // Start the server thread
-    this->server_thread = std::thread(&Server::accept_clients, this);
-
     return 0;
+}
+
+void Server::run() {
+    // cout << "Running the game server..." << endl;
+    cout << "\n(main thread " << std::this_thread::get_id()
+         << ", Server::run) Running the game server..." << endl;
+
+    while (1)
+        ;  // FIXME: this is a temporary block to keep the server running
+
+    // // Set the game state to "Game_start"
+    // {
+    //     std::lock_guard<std::mutex> lock(game_state_mutex);
+    //     game_state.set_state("Game_start");
+    // }
+
+    // // cout << "Game started!" << endl;
+    // cout << "(main thread " << std::this_thread::get_id()
+    //      << ", Server::run) Game started!" << endl;
+
+    // // Main game loop
+    // while (this->running) {
+    //     // cout << "Game running..." << endl;
+    //     cout << "(main thread " << std::this_thread::get_id()
+    //          << ", Server::run) Game running..." << endl;
+
+    //     // Sleep for a bit
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    // }
 }
 
 int Server::set_up_socket() {
     // Create the server socket
     this->server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (this->server_socket < 0) {
-        cerr << "Error creating server socket" << endl;
+        // cerr << "Error creating server socket" << endl;
+        cerr << "\n(main thread " << std::this_thread::get_id()
+             << ", Server::set_up_socket) Error creating server socket" << endl;
         return -1;
     }
 
@@ -60,7 +132,9 @@ int Server::set_up_socket() {
     server_address.sin_port = htons(port);
     if (bind(this->server_socket, (struct sockaddr *)&server_address,
              sizeof(server_address)) < 0) {
-        cerr << "Error binding server socket" << endl;
+        // cerr << "Error binding server socket" << endl;
+        cerr << "(main thread " << std::this_thread::get_id()
+             << ", Server::set_up_socket) Error binding server socket" << endl;
         close(this->server_socket);
         return -1;
     }
@@ -71,7 +145,24 @@ int Server::set_up_socket() {
     // sizeof(opt));
     if (setsockopt(this->server_socket, SOL_SOCKET, SO_REUSEADDR, &opt,
                    sizeof(opt)) < 0) {
-        cerr << "Error setting socket options" << endl;
+        // cerr << "Error setting socket options" << endl;
+        cerr << "(main thread " << std::this_thread::get_id()
+             << ", Server::set_up_socket) Error setting socket options" << endl;
+        close(this->server_socket);
+        return -1;
+    }
+
+    // configure the server socket to timeout after a certain period, so that it
+    // won't block forever, especially when waiting for clients but sigint is
+    // received
+    struct timeval timeout;
+    timeout.tv_sec = config::server_config::CLIENT_SOCKET_TIMEOUT_SEC;
+    timeout.tv_usec = config::server_config::CLIENT_SOCKET_TIMEOUT_USEC;
+    if (setsockopt(this->server_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout,
+                   sizeof(timeout)) < 0) {
+        // cerr << "Error setting socket options" << endl;
+        cerr << "(main thread " << std::this_thread::get_id()
+             << ", Server::set_up_socket) Error setting socket options" << endl;
         close(this->server_socket);
         return -1;
     }
@@ -80,7 +171,10 @@ int Server::set_up_socket() {
     // this is a 1v2 game, so we only need to listen for 2 clients
     if (listen(this->server_socket, config::server_config::SOCKET_BACKLOG) <
         0) {
-        cerr << "Error listening on server socket" << endl;
+        // cerr << "Error listening on server socket" << endl;
+        cerr << "(main thread " << std::this_thread::get_id()
+             << ", Server::set_up_socket) Error listening on server socket"
+             << endl;
         close(this->server_socket);
         return -1;
     }
@@ -89,11 +183,14 @@ int Server::set_up_socket() {
 }
 
 void Server::accept_clients() {
-    cout << "Waiting for clients to connect..." << endl;
+    std::thread::id this_id = std::this_thread::get_id();
+    // cout << "\n\nWaiting for clients to connect..." << endl;
+    cout << "\n(server thread " << this_id
+         << ", Server::accept_clients) Waiting for clients to connect..."
+         << endl;
 
     // Accept incoming client connections
     while (this->running) {
-        // if (this->game_running) {
         if (game_state.get_state() == "Game_start") {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
@@ -103,10 +200,18 @@ void Server::accept_clients() {
         socklen_t clientSize = sizeof(clientAddr);
 
         int clientSocket =
-            accept(server_socket, (sockaddr *)&clientAddr, &clientSize);
+            accept(this->server_socket, (sockaddr *)&clientAddr, &clientSize);
 
         if (clientSocket == -1) {
-            if (running) perror("Error accepting client");
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                // just timeout, no big deal
+                // cout << "boo" << endl;
+            } else {
+                cerr << "(server thread " << this_id
+                     << ", Server::accept_clients) Error accepting client "
+                        "connection"
+                     << endl;
+            }
             continue;
         }
 
@@ -115,13 +220,27 @@ void Server::accept_clients() {
             client_sockets.push_back(clientSocket);
         }
 
-        cout << "Client connected on socket " << clientSocket << endl;
-        cout << "Current number of clients: " << client_sockets.size() << endl;
+        // cout << "Client connected on socket " << clientSocket << endl;
+        // cout << "Current number of clients: " << client_sockets.size() <<
+        // endl;
+        // cout << "(server thread " << this_id << ") "
+        //      << "Client connected on socket " << clientSocket << endl;
+        // cout << "(server thread " << this_id << ") "
+        //      << "Current number of clients: " << client_sockets.size() <<
+        //      endl;
+        cout << "(server thread " << this_id << ", Server::accept_clients) "
+             << "Client connected on socket " << clientSocket << endl;
+        cout << "(server thread " << this_id << ", Server::accept_clients) "
+             << "Current number of clients: " << client_sockets.size() << endl;
 
         client_threads.emplace_back(&Server::handle_client, this, clientSocket);
 
         if (client_sockets.size() >= config::game_config::MAX_PLAYERS) {
-            cout << "All players connected. Game ready to start!" << endl;
+            // cout << "All players connected. Game ready to start!" << endl;
+            cout << "(server thread " << this_id
+                 << ", Server::accept_clients) All players connected. Game "
+                    "ready to start!"
+                 << endl;
 
             // TODO: should I start the game here?
             // {
@@ -129,7 +248,7 @@ void Server::accept_clients() {
             //     game_state.set_state("Game_start");
             // }
 
-            // this->run();
+            this->run();
         }
     }
 }
@@ -138,7 +257,10 @@ void Server::handle_client(int client_socket) {
     // FIXME: quick and dirty way to manage client connections
     // I should probably split read/write into separate threads...
 
-    cout << "Initializing client..." << endl;
+    std::thread::id this_id = std::this_thread::get_id();
+    cout << "\n(client thread " << this_id
+         << ", Server::handle_client) Handling client connection on socket "
+         << client_socket << endl;
 
     // set up the client socket
     struct timeval timeout;
@@ -146,17 +268,26 @@ void Server::handle_client(int client_socket) {
     timeout.tv_usec = config::server_config::CLIENT_SOCKET_TIMEOUT_USEC;
     if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout,
                    sizeof(timeout)) < 0) {
-        cerr << "Error setting client socket options" << endl;
+        // cerr << "Error setting client socket options" << endl;
+        cerr << "(client thread " << this_id
+             << ", Server::handle_client) Error setting client socket options"
+             << endl;
         return;
     }
 
     // Send the client its ID
     int client_id = this->create_client_id();
-    cout << "Client ID: " << client_id << endl;
+    // cout << "(Client on socket " << client_socket
+    //      << ") Assigned ID: " << client_id << endl;
+    cout << "(client thread " << this_id
+         << ", Server::handle_client) Assigned ID: " << client_id << endl;
 
     // Send the client its initial data
     if (this->send_initial_data(client_socket, client_id) < 0) {
-        cerr << "Error sending initial data to client" << endl;
+        // cerr << "Error sending initial data to client" << endl;
+        cerr << "(client thread " << this_id
+             << ", Server::handle_client) Error sending initial data to client"
+             << endl;
         return;
     }
 
@@ -164,7 +295,21 @@ void Server::handle_client(int client_socket) {
     this->create_player(client_id);
 
     // Main client loop
-    cout << "Client initialized. Starting main loop..." << endl;
+    // cout << "(Client on socket " << client_socket << " , ID " << client_id
+    //      << ") waiting for game to start..." << endl;
+    cout << "(client thread " << this_id << ", Server::handle_client) "
+         << "(client ID " << client_id << ") "
+         << "waiting for game to start..." << endl;
+    while (this->game_state.get_state() != "Game_start") {
+        // Sleep for a bit
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    // cout << "(Client on socket " << client_socket << " , ID " << client_id
+    //      << ") game started!" << endl;
+    cout << "(client thread " << this_id << ", Server::handle_client) "
+         << "(client ID " << client_id << ") "
+         << "game started!" << endl;
     while (this->game_state.get_state() == "Game_start") {
         // Receive data from the client
         char buffer[1024] = {0};
@@ -173,7 +318,11 @@ void Server::handle_client(int client_socket) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
                 // basically no input from client, which is fine
             } else {
-                cerr << "Error receiving data from client" << endl;
+                // cerr << "Error receiving data from client" << endl;
+                cerr << "(client thread " << this_id
+                     << ", Server::handle_client) Error receiving data from "
+                        "client"
+                     << endl;
                 break;
             }
         } else {
@@ -182,20 +331,27 @@ void Server::handle_client(int client_socket) {
             try {
                 data = json::parse(buffer);
             } catch (json::exception &e) {
-                cerr << "Error parsing JSON data: " << e.what() << endl;
+                // cerr << "Error parsing JSON data: " << e.what() << endl;
+                cerr << "(client thread " << this_id
+                     << ", Server::handle_client) Error parsing JSON data: "
+                     << e.what() << endl;
                 break;
             }
 
             // Process the received data
-            // TODO: somehow update the player's position, maybe write another
-            // member function in GameState to do this?
+            // TODO: somehow update the player's position, maybe write
+            // another member function in GameState to do this?
         }
 
         // Send the updated game state to the client
         std::string game_state_str = game_state.to_json().dump();
         if (send(client_socket, game_state_str.c_str(), game_state_str.length(),
                  0) < 0) {
-            cerr << "Error sending game state to client" << endl;
+            // cerr << "Error sending game state to client" << endl;
+            cerr
+                << "(client thread " << this_id
+                << ", Server::handle_client) Error sending game state to client"
+                << endl;
             break;
         }
 
@@ -262,3 +418,35 @@ void Server::create_player(int client_id) {
         this->game_state.add_player(client_id);
     }
 }
+
+void Server::stop() {
+    cout << "\n??? thread " << std::this_thread::get_id()
+         << ", Server::stop) Stopping server..." << endl;
+
+    if (server_thread.joinable()) {
+        // cout << "Joining server thread..." << endl;
+        cout << "\n??? thread " << std::this_thread::get_id()
+             << ", Server::stop) Joining server thread..." << endl;
+        server_thread.join();  // Wait for the thread to finish
+    }
+
+    for (auto &thread : client_threads) {
+        if (thread.joinable()) {
+            // cout << "Joining client thread..." << endl;
+            cout << "\n??? thread " << std::this_thread::get_id()
+                 << ", Server::stop) Joining client thread..." << endl;
+            thread.join();  // Wait for the thread to finish
+        }
+    }
+
+    if (server_socket != -1) {
+        // cout << "Cleaning up server resources..." << endl;
+        cout << "\n??? thread " << std::this_thread::get_id()
+             << ", Server::stop) Cleaning up server resources..." << endl;
+        close(server_socket);  // Close the server socket
+    }
+
+    this->running = false;  // Ensure the server loop exits
+}
+
+bool Server::is_running() { return this->running; }

@@ -56,14 +56,14 @@ class Server {
      *
      * @return true if the server is running, false otherwise
      */
-    bool is_running() const;
+    bool is_running();
 
     /**
      * @brief Check if the game is running
      *
      * @return true if the game is running, false otherwise
      */
-    bool is_game_running() const;
+    bool is_game_running();
 
    private:
     // general server configuration
@@ -72,10 +72,11 @@ class Server {
     std::atomic<bool> running;  ///< flag indicating if the server is running
 
     // server client data structures
-    std::atomic<int> next_client_id{1};  ///< next client ID
-    std::mutex game_state_mutex;         ///< mutex for accessing the game state
-    std::thread server_thread;           ///< thread for running the server
-    std::vector<int> client_sockets;     ///< client socket file descriptors
+    std::atomic<int> next_client_id{0};  ///< next client ID
+    std::mutex server_state_mutex;    ///< mutex for accessing the server state
+    std::mutex game_state_mutex;      ///< mutex for accessing the game state
+    std::thread server_thread;        ///< thread for running the server
+    std::vector<int> client_sockets;  ///< client socket file descriptors
     std::vector<std::thread> client_threads;  ///< threads for handling clients
 
     GameState game_state;  ///< current game state

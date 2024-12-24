@@ -36,7 +36,7 @@ constexpr float WORLD_SIZE = 100.0f;
 constexpr float PLAYER_1_START_X = 10.0f;
 constexpr float PLAYER_1_START_Y = 10.0f;
 constexpr float PLAYER_2_START_X = 90.0f;
-constexpr float PLAYER_2_START_Y = 90.0f;
+constexpr float PLAYER_2_START_Y = 10.0f;
 
 }  // namespace game_config
 

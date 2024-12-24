@@ -1,18 +1,16 @@
+import socket
+import json
 
-class Player:
-    def __init__(self, name):
-        self.ID: int = None
-        self.position: tuple[float, float] = (0, 0)
-        self.state: str = "idle"
+def main():
+    host = 'localhost'
+    port = 12345
 
-def get_server_respoen():
-    # get response from server, which is a json string
-    response = ...
-    for player in response["players"]:
-        player = Player(player["name"])
-        player.ID = player["ID"]
-        player.position = player["position"]
-        player.state = player["state"]
-        print(player.ID, player.position, player.state)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((host, port))
+        data = s.recv(1024)
+        # print('Received', repr(data))
+        json_data = json.loads(data.decode('utf-8'))
+        print(json_data)
 
-
+if __name__ == "__main__":
+    main()
