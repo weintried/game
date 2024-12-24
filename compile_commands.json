@@ -1,1 +1,32 @@
-server/build/compile_commands.json
+[
+{
+  "directory": "/home/weinfailed/game/server/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/home/weinfailed/game/server/include  -o CMakeFiles/GameServer.dir/src/main.cpp.o -c /home/weinfailed/game/server/src/main.cpp",
+  "file": "/home/weinfailed/game/server/src/main.cpp"
+},
+{
+  "directory": "/home/weinfailed/game/server/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/home/weinfailed/game/server/include  -o CMakeFiles/GameServer.dir/src/server.cpp.o -c /home/weinfailed/game/server/src/server.cpp",
+  "file": "/home/weinfailed/game/server/src/server.cpp"
+},
+{
+  "directory": "/home/weinfailed/game/server/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/home/weinfailed/game/server/include  -o CMakeFiles/GameServer.dir/src/game_state.cpp.o -c /home/weinfailed/game/server/src/game_state.cpp",
+  "file": "/home/weinfailed/game/server/src/game_state.cpp"
+},
+{
+  "directory": "/home/weinfailed/game/server/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/home/weinfailed/game/server/include  -o CMakeFiles/GameServer.dir/src/player.cpp.o -c /home/weinfailed/game/server/src/player.cpp",
+  "file": "/home/weinfailed/game/server/src/player.cpp"
+},
+{
+  "directory": "/home/weinfailed/game/server/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/home/weinfailed/game/server/include  -o CMakeFiles/GameServer.dir/src/bullet.cpp.o -c /home/weinfailed/game/server/src/bullet.cpp",
+  "file": "/home/weinfailed/game/server/src/bullet.cpp"
+},
+{
+  "directory": "/home/weinfailed/game/server/build",
+  "command": "/usr/bin/c++ -DJSON_DIAGNOSTICS=0 -DJSON_USE_IMPLICIT_CONVERSIONS=1 -I/home/weinfailed/game/server/include  -o CMakeFiles/GameServer.dir/src/enemy.cpp.o -c /home/weinfailed/game/server/src/enemy.cpp",
+  "file": "/home/weinfailed/game/server/src/enemy.cpp"
+}
+]

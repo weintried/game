@@ -21,7 +21,7 @@ int main() {
     Bullet bullet;
     GameState game_state = GameState();
 
-    Server server;
+    Server server(12345);
 
     json some_json;
 

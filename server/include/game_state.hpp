@@ -17,11 +17,16 @@
 #define GAME_STATE_HPP
 
 #include <string>
+using std::string;
+#include <vector>
+using std::vector;
 
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 
 #include "bullet.hpp"
+#include "config.hpp"
+#include "enemy.hpp"
 #include "player.hpp"
 
 /**
@@ -43,6 +48,11 @@ class GameState {
 
     void update();
 
+    void set_state(const string& state);
+    string get_state() const;
+
+    void add_player(int id);
+
     /**
      * @brief Serialize the GameState object to JSON
      *
@@ -59,12 +69,20 @@ class GameState {
 
    private:
     std::string state =
-        "Game_start";  ///< current game state: Ready | Game_start | Game_over
-    int frame_count = 0;                ///< current frame count
-    float game_remaining_time = 60.0f;  ///< remaining time in the game
+        "Ready";  ///< current game state: Ready | Game_start | Game_over
+    int frame_count = 0;  ///< current frame count
+    // float game_remaining_time = 60.0f;  ///< remaining time in the game
+    float game_remaining_time =
+        config::game_config::GAME_DURATION;  ///< remaining time in the game
 
     // additional info
     std::string reason = "";  ///< reason for game ending
+    int winner_id = -1;       ///< ID of the winning player
+
+    // game objects
+    std::vector<Player> players;  ///< list of players
+    std::vector<Bullet> bullets;  ///< list of bullets
+    std::vector<Enemy> enemies;   ///< list of enemies
 };
 
 #endif  // GAME_STATE_HPP
